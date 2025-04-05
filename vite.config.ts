@@ -19,9 +19,12 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  optimizeDeps: {
+    include: ['file-saver', 'uuid'],
+  },
   build: {
     rollupOptions: {
-      external: ['file-saver'],
+      external: ['file-saver', 'uuid'],
     },
   },
 }));
