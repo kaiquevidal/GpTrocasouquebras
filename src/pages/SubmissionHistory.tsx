@@ -45,7 +45,8 @@ import {
   Package,
   ChevronLeft,
   ChevronRight,
-  Download
+  Download,
+  X
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import JSZip from 'jszip';
@@ -233,7 +234,18 @@ const SubmissionHistory = () => {
           name: submission.users.name,
           employee_id: submission.users.employee_id
         },
-        items: items || []
+        items: items ? items.map(item => ({
+          id: item.id,
+          quantity: item.quantity,
+          reason: item.reason,
+          type: item.type,
+          photos: item.photos,
+          product: {
+            name: item.products.name,
+            code: item.products.code,
+            capacity: item.products.capacity
+          }
+        })) : []
       };
       
       setCurrentSubmission(submissionDetail);

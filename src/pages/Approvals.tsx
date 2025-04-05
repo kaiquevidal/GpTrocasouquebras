@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -204,7 +203,7 @@ const Approvals = () => {
       
       if (itemsError) throw itemsError;
       
-      // Combine data
+      // Combine data and transform the products property into product
       const submissionDetail: SubmissionDetail = {
         id: submission.id,
         timestamp: submission.timestamp,
@@ -214,7 +213,18 @@ const Approvals = () => {
           name: submission.users.name,
           employee_id: submission.users.employee_id
         },
-        items: items || []
+        items: items ? items.map(item => ({
+          id: item.id,
+          quantity: item.quantity,
+          reason: item.reason,
+          type: item.type,
+          photos: item.photos,
+          product: {
+            name: item.products.name,
+            code: item.products.code,
+            capacity: item.products.capacity
+          }
+        })) : []
       };
       
       setCurrentSubmission(submissionDetail);
