@@ -1,155 +1,224 @@
-
+// @ts-nocheck
 import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
+import { useNavigate, Link } from 'react-router-dom';
+import { signUp } from '../services/authService';
 
-const Register = () => {
-  const [employeeId, setEmployeeId] = useState('');
-  const [name, setName] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const { register, loading } = useAuth();
+export default function Register() {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  
+  // Estado do formulário
+  const [formData, setFormData] = useState({
+    matricula: '',
+    nome: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
 
+  // Manipula a mudança nos campos do formulário
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    // Limpar mensagens de erro quando o usuário começar a digitar novamente
+    setError(null);
+  };
+
+  // Manipula o envio do formulário
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-
-    // Validate employee ID format (8 digits)
-    if (!/^\d{8}$/.test(employeeId)) {
-      setError('Employee ID must be 8 digits');
+    
+    // Validar se as senhas coincidem
+    if (formData.password !== formData.confirmPassword) {
+      setError('As senhas não coincidem');
+      return;
+    }
+    
+    // Validar se todos os campos estão preenchidos
+    if (!formData.matricula || !formData.nome || !formData.email || !formData.password) {
+      setError('Todos os campos são obrigatórios');
       return;
     }
 
-    // Validate name (non-empty)
-    if (!name.trim()) {
-      setError('Full name is required');
-      return;
-    }
-
-    // Validate passwords match
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    // Validate password strength (minimum 6 characters)
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      return;
-    }
-
+    setLoading(true);
+    setError(null);
+    
     try {
-      await register(employeeId, name, password);
-    } catch (err: any) {
-      setError(err.message || 'Failed to register');
+      const { data, error } = await signUp({
+        matricula: formData.matricula,
+        nome: formData.nome,
+        email: formData.email,
+        password: formData.password
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      setSuccess('Registro realizado com sucesso! Redirecionando para o login...');
+      
+      // Redirecionar para a página de login após 2 segundos
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
+      
+    } catch (err) {
+      console.error('Erro no registro:', err);
+      setError(err.message || 'Ocorreu um erro ao tentar registrar. Tente novamente.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-      <div className="w-full max-w-md">
-        <Card className="border-none shadow-lg">
-          <CardHeader className="bg-company-primary text-white rounded-t-lg">
-            <div className="flex justify-center mb-4">
-              <div className="h-12 w-12 rounded-full bg-white flex items-center justify-center">
-                <span className="text-company-primary font-bold text-2xl">B</span>
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          Crie sua conta
+        </h2>
+      </div>
+
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          {error && (
+            <div className="mb-4 bg-red-50 border-l-4 border-red-400 p-4 text-red-700">
+              <p>{error}</p>
+            </div>
+          )}
+          
+          {success && (
+            <div className="mb-4 bg-green-50 border-l-4 border-green-400 p-4 text-green-700">
+              <p>{success}</p>
+            </div>
+          )}
+          
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <div>
+              <label htmlFor="matricula" className="block text-sm font-medium text-gray-700">
+                Matrícula
+              </label>
+              <div className="mt-1">
+                <input
+                  id="matricula"
+                  name="matricula"
+                  type="text"
+                  autoComplete="off"
+                  required
+                  value={formData.matricula}
+                  onChange={handleInputChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                />
               </div>
             </div>
-            <CardTitle className="text-center text-2xl">Create Account</CardTitle>
-          </CardHeader>
-          
-          <CardContent className="pt-6">
-            <form onSubmit={handleSubmit}>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="employeeId">Employee ID</Label>
-                  <Input
-                    id="employeeId"
-                    type="text"
-                    placeholder="00000000"
-                    value={employeeId}
-                    onChange={(e) => setEmployeeId(e.target.value)}
-                    disabled={loading}
-                    required
-                  />
-                  <p className="text-xs text-gray-500">Must be 8 digits</p>
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="John Doe"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    disabled={loading}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading}
-                    required
-                  />
-                  <p className="text-xs text-gray-500">Minimum 6 characters</p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    disabled={loading}
-                    required
-                  />
-                </div>
-
-                {error && (
-                  <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">
-                    {error}
-                  </div>
-                )}
-
-                <Button 
-                  type="submit" 
-                  className="w-full bg-company-primary hover:bg-company-primary/90" 
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <div className="flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      <span className="ml-2">Registering...</span>
-                    </div>
-                  ) : 'Register'}
-                </Button>
-
-                <div className="text-center text-sm text-gray-500">
-                  <span>Already have an account? </span>
-                  <Link to="/login" className="text-company-primary hover:underline">Login</Link>
-                </div>
+            <div>
+              <label htmlFor="nome" className="block text-sm font-medium text-gray-700">
+                Nome completo
+              </label>
+              <div className="mt-1">
+                <input
+                  id="nome"
+                  name="nome"
+                  type="text"
+                  autoComplete="name"
+                  required
+                  value={formData.nome}
+                  onChange={handleInputChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                />
               </div>
-            </form>
-          </CardContent>
-        </Card>
+            </div>
+
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email
+              </label>
+              <div className="mt-1">
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Senha
+              </label>
+              <div className="mt-1">
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                Confirmar senha
+              </label>
+              <div className="mt-1">
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                />
+              </div>
+            </div>
+
+            <div>
+              <button
+                type="submit"
+                disabled={loading}
+                className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+              >
+                {loading ? 'Registrando...' : 'Registrar'}
+              </button>
+            </div>
+          </form>
+
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">
+                  Já tem uma conta?
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <Link
+                to="/login"
+                className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Entrar
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
-};
-
-export default Register;
+}

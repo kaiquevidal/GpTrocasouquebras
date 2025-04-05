@@ -1,73 +1,202 @@
-# Welcome to your Lovable project
+# Sistema de Gestão de Quebras e Trocas
 
-## Project info
+Um sistema web para gerenciamento de quebras e trocas de produtos, desenvolvido com React, TypeScript, Tailwind CSS e Supabase.
 
-**URL**: https://lovable.dev/projects/2c8ff9eb-e942-4daa-98dd-eca8f714394d
+## Visão Geral
 
-## How can I edit this code?
+Este sistema permite que usuários registrem produtos quebrados ou trocados, incluindo fotos, quantidades e motivos. Os lançamentos são submetidos a um fluxo de aprovação por administradores, que podem aprovar ou rejeitar os registros.
 
-There are several ways of editing your application.
+## Funcionalidades
 
-**Use Lovable**
+- **Autenticação de Usuários**: Cadastro e login com Supabase Auth
+- **Registro de Quebras/Trocas**: Interface para registrar produtos quebrados ou trocados
+- **Upload de Fotos**: Upload de imagens para documentar cada item
+- **Histórico de Lançamentos**: Visualização do histórico de registros com status
+- **Painel de Administração**: Interface para aprovação ou rejeição de lançamentos
+- **Validação de Formulários**: Validação usando Zod e React Hook Form
+- **Interface Responsiva**: Design adaptável para dispositivos móveis e desktop
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/2c8ff9eb-e942-4daa-98dd-eca8f714394d) and start prompting.
+## Tecnologias Utilizadas
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Frontend**: React, TypeScript, Tailwind CSS
+- **Backend**: Supabase (PostgreSQL, Storage, Auth)
+- **Validação**: Zod, React Hook Form
+- **Gerenciamento de Arquivos**: Supabase Storage, JSZip, File-Saver
+- **Formatação de Data**: date-fns
 
-**Use your preferred IDE**
+## Estrutura do Projeto
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+src/
+├── components/         # Componentes React
+│   ├── HistoricoLancamentos.tsx
+│   ├── LancamentoForm.tsx
+│   ├── LancamentoFormValidado.tsx
+│   └── Navbar.tsx
+├── lib/                # Bibliotecas e clientes
+│   └── supabaseClient.ts
+├── pages/              # Páginas da aplicação
+│   ├── Admin.tsx
+│   ├── Home.tsx
+│   ├── Login.tsx
+│   └── Register.tsx
+├── services/           # Serviços de integração
+│   ├── authService.ts
+│   ├── lancamentoService.ts
+│   └── uploadService.ts
+├── types/              # Definições de tipos TypeScript
+│   └── user.d.ts
+└── App.tsx             # Componente principal e rotas
 ```
 
-**Edit a file directly in GitHub**
+## Requisitos
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+- Node.js (versão 14 ou superior)
+- NPM ou Yarn
+- Conta no Supabase para configuração do backend
 
-**Use GitHub Codespaces**
+## Instalação
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+1. Clone este repositório:
+   ```bash
+   git clone https://github.com/seu-usuario/quebras-trocas-app.git
+   cd quebras-trocas-app
+   ```
 
-## What technologies are used for this project?
+2. Instale as dependências:
+   ```bash
+   npm install
+   # ou
+   yarn install
+   ```
 
-This project is built with:
+3. Configure as variáveis de ambiente:
+   - Crie um arquivo `.env.local` na raiz do projeto
+   - Adicione suas credenciais do Supabase:
+     ```
+     REACT_APP_SUPABASE_URL=sua-url-do-supabase
+     REACT_APP_SUPABASE_ANON_KEY=sua-chave-anonima-do-supabase
+     ```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+4. Inicie o servidor de desenvolvimento:
+   ```bash
+   npm start
+   # ou
+   yarn start
+   ```
 
-## How can I deploy this project?
+## Configuração do Supabase
 
-Simply open [Lovable](https://lovable.dev/projects/2c8ff9eb-e942-4daa-98dd-eca8f714394d) and click on Share -> Publish.
+1. Crie um novo projeto no [Supabase](https://supabase.com)
 
-## Can I connect a custom domain to my Lovable project?
+2. Execute o seguinte script SQL para configurar as tabelas:
 
-Yes it is!
+```sql
+-- Tabela de produtos
+CREATE TABLE produtos (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  nome TEXT NOT NULL,
+  codigo TEXT NOT NULL,
+  capacidade TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+-- Tabela de lançamentos
+CREATE TABLE lancamentos (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  data_hora TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  status TEXT NOT NULL DEFAULT 'pendente',
+  observacoes TEXT,
+  observacoes_admin TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+-- Tabela de itens
+CREATE TABLE itens (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  lancamento_id UUID NOT NULL REFERENCES lancamentos(id) ON DELETE CASCADE,
+  produto_id UUID NOT NULL REFERENCES produtos(id) ON DELETE CASCADE,
+  quantidade INTEGER NOT NULL,
+  motivo TEXT NOT NULL,
+  tipo_operacao TEXT NOT NULL,
+  fotos TEXT[] DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Criar bucket para armazenamento de fotos
+INSERT INTO storage.buckets (id, name, public) VALUES ('fotos-lancamentos', 'fotos-lancamentos', true);
+
+-- Políticas de Row Level Security (RLS)
+-- Produtos: qualquer usuário autenticado pode ler
+ALTER TABLE produtos ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Qualquer usuário autenticado pode ler produtos" ON produtos
+FOR SELECT TO authenticated USING (true);
+
+-- Lançamentos: usuários podem ler seus próprios lançamentos, admins podem ler todos
+ALTER TABLE lancamentos ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Usuários podem inserir lançamentos" ON lancamentos
+FOR INSERT TO authenticated WITH CHECK (auth.uid() = usuario_id);
+CREATE POLICY "Usuários podem ler seus próprios lançamentos" ON lancamentos
+FOR SELECT TO authenticated USING (auth.uid() = usuario_id OR (
+  SELECT user_metadata->>'perfil' FROM auth.users WHERE id = auth.uid()
+) = 'admin');
+CREATE POLICY "Admins podem atualizar qualquer lançamento" ON lancamentos
+FOR UPDATE TO authenticated USING (
+  (SELECT user_metadata->>'perfil' FROM auth.users WHERE id = auth.uid()) = 'admin'
+);
+
+-- Itens: usuários podem ler seus próprios itens, admins podem ler todos
+ALTER TABLE itens ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Usuários podem inserir itens" ON itens
+FOR INSERT TO authenticated WITH CHECK (
+  EXISTS (SELECT 1 FROM lancamentos WHERE id = lancamento_id AND usuario_id = auth.uid())
+);
+CREATE POLICY "Usuários podem ler seus próprios itens" ON itens
+FOR SELECT TO authenticated USING (
+  EXISTS (
+    SELECT 1 FROM lancamentos 
+    WHERE id = lancamento_id AND (
+      usuario_id = auth.uid() OR
+      (SELECT user_metadata->>'perfil' FROM auth.users WHERE id = auth.uid()) = 'admin'
+    )
+  )
+);
+
+-- Storage: usuários podem fazer upload para suas próprias pastas
+CREATE POLICY "Usuários podem fazer upload para suas próprias pastas" ON storage.objects
+FOR INSERT TO authenticated WITH CHECK (
+  bucket_id = 'fotos-lancamentos' AND (
+    storage.foldername(name)[1] = auth.uid()::text OR
+    (SELECT user_metadata->>'perfil' FROM auth.users WHERE id = auth.uid()) = 'admin'
+  )
+);
+CREATE POLICY "Qualquer usuário autenticado pode ler arquivos" ON storage.objects
+FOR SELECT TO authenticated USING (bucket_id = 'fotos-lancamentos');
+```
+
+3. Configure autenticação:
+   - Ative o provedor Email/Password
+   - Opcional: Configure outros provedores de autenticação
+   - Configure templates de email para recuperação de senha
+
+## Permissões e Perfis de Usuário
+
+O sistema possui dois níveis de acesso:
+
+1. **Usuário**: Pode registrar quebras/trocas, visualizar seu histórico e atualizar seu perfil
+2. **Admin**: Pode aprovar/rejeitar lançamentos, gerenciar produtos e usuários, visualizar todos os lançamentos
+
+## Contribuição
+
+Contribuições são bem-vindas! Para contribuir:
+
+1. Faça um fork do projeto
+2. Crie uma branch para sua funcionalidade (`git checkout -b feature/nova-funcionalidade`)
+3. Commit suas mudanças (`git commit -m 'Adiciona nova funcionalidade'`)
+4. Faça um push para a branch (`git push origin feature/nova-funcionalidade`)
+5. Abra um Pull Request
+
+## Licença
+
+Este projeto está licenciado sob a licença MIT - veja o arquivo LICENSE para detalhes.
